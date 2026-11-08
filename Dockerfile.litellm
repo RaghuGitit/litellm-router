@@ -1,0 +1,7 @@
+FROM docker.litellm.ai/berriai/litellm:v1.103.2
+
+WORKDIR /app
+
+COPY privacy-requirements.txt /tmp/privacy-requirements.txt
+RUN python -m ensurepip --upgrade \
+    && python -m pip install --no-cache-dir -r /tmp/privacy-requirements.txt

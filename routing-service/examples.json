@@ -1,0 +1,23 @@
+{
+  "SIMPLE": [
+    "What is an API gateway?",
+    "Define dependency injection.",
+    "What is the capital of Japan?",
+    "Summarize this short paragraph."
+  ],
+  "MEDIUM": [
+    "Write a Python function that reverses a string.",
+    "Explain how dependency injection works with a small example.",
+    "Convert this JSON object into a Python dataclass."
+  ],
+  "COMPLEX": [
+    "Debug a race condition in this multithreaded service.",
+    "Compare two microservice architectures with failure modes and tradeoffs.",
+    "Refactor this asynchronous code to handle retries and cancellation safely."
+  ],
+  "REASONING": [
+    "Prove this mathematical statement by induction.",
+    "Derive the solution to this system of differential equations.",
+    "Analyze the correctness and asymptotic complexity of this algorithm."
+  ]
+}

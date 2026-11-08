@@ -1,0 +1,85 @@
+# LiteLLM quickstart stack: the gateway plus a Postgres database that stores
+# models, virtual keys, and spend logs. Used by
+# https://docs.litellm.ai/docs/proxy/docker_quick_start
+#
+#   curl -sSLO https://github.com/BerriAI/litellm/raw/main/docker/docker-compose.quickstart.yml
+#   printf 'LITELLM_MASTER_KEY=sk-%s\nLITELLM_SALT_KEY=sk-%s\n' "$(openssl rand -hex 32)" "$(openssl rand -hex 32)" > .env
+#   docker compose -f docker-compose.quickstart.yml up -d
+#
+# Compose reads .env from this directory. Keep it: regenerating LITELLM_SALT_KEY
+# makes credentials already stored in the database unreadable. For anything
+# beyond local evaluation, pin the image to a specific release tag.
+services:
+  litellm:
+    build:
+      context: .
+      dockerfile: Dockerfile.litellm
+    image: litellm-router-privacy:v1.103.2
+    ports:
+      # LITELLM_BIND is empty by default, so this stays "4000:4000". The quickstart
+      # script sets it to "127.0.0.1:" so new installs listen on this machine only.
+      - "${LITELLM_BIND:-}${LITELLM_PORT:-4000}:4000"
+    environment:
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:?set it in .env - see the header of this file}
+      LITELLM_SALT_KEY: ${LITELLM_SALT_KEY:?set it in .env - see the header of this file}
+      DATABASE_URL: postgresql://litellm:${POSTGRES_PASSWORD:-litellm}@db:5432/litellm
+      STORE_MODEL_IN_DB: "True"
+      # Added OPENAI_API_KEY
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      # Added router service configs
+      PYTHONPATH: /app
+      ROUTER_SERVICE_URL: http://routing-service:8000/route      
+      PRIVACY_LAYER_ENABLED: ${PRIVACY_LAYER_ENABLED:-true}
+      PRIVACY_POLICY_PATH: /app/privacy/policies.yaml
+    # Added volumes for config and router
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - ./plugins:/app/plugins:ro
+      - ./privacy:/app/privacy:ro
+    # Added command
+    command:
+      - "--config"
+      - "/app/config.yaml"
+    # Added routing-service health check
+    depends_on:
+      db:
+        condition: service_healthy
+      routing-service:
+        condition: service_healthy
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: litellm
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-litellm}
+      POSTGRES_DB: litellm
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U litellm"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  # Added routing-service details
+  routing-service:
+    build:
+      context: ./routing-service
+    environment:
+      OLLAMA_URL: http://host.docker.internal:11434
+      OLLAMA_CLASSIFIER_MODEL: qwen3.5:0.8b
+      ROUTER_EXAMPLES_PATH: /config/examples.json
+    volumes:
+      - ${ROUTER_EXAMPLES_HOST_PATH:-./routing-service/examples.json}:/config/examples.json:ro
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "8000:8000"
+volumes:
+  postgres_data:

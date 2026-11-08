@@ -1,0 +1,67 @@
+version: privacy-v1
+enabled: true
+fail_closed: true
+reject_streaming: true
+
+entities:
+  EMAIL_ADDRESS:
+    enabled: true
+    action: tokenize
+    restore: true
+    score_threshold: 0.5
+  PHONE_NUMBER:
+    enabled: true
+    action: tokenize
+    restore: true
+    score_threshold: 0.5
+  PERSON:
+    enabled: false
+    action: tokenize
+    restore: true
+    score_threshold: 0.75
+  LOCATION:
+    enabled: false
+    action: tokenize
+    restore: true
+    score_threshold: 0.75
+  DATE_TIME:
+    enabled: true
+    action: tokenize
+    restore: true
+    score_threshold: 0.6
+  API_KEY:
+    enabled: true
+    action: redact
+    restore: false
+    score_threshold: 0.9
+  PRIVATE_KEY:
+    enabled: true
+    action: redact
+    restore: false
+    score_threshold: 0.9
+
+custom_patterns:
+  - name: customer_id
+    entity_type: CUSTOMER_ID
+    regex: "\\bCUST-[0-9]{6}\\b"
+    score: 0.95
+    action: tokenize
+    restore: true
+  - name: employee_id
+    entity_type: EMPLOYEE_ID
+    regex: "\\bEMP-[A-Z]{2}-[0-9]{4}\\b"
+    score: 0.95
+    action: tokenize
+    restore: true
+  - name: account_id
+    entity_type: ACCOUNT_ID
+    regex: "\\bACCT-[A-Z0-9]{8,12}\\b"
+    score: 0.95
+    action: tokenize
+    restore: true
+  - name: ticket_id
+    entity_type: TICKET_ID
+    regex: "\\b(?:INC|REQ|TICKET)-[0-9]{5,10}\\b"
+    score: 0.95
+    action: tokenize
+    restore: true
